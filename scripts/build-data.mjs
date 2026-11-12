@@ -2,13 +2,21 @@
 // Sources: Natural Earth (public domain), OpenStreetMap (ODbL), TeleGeography
 // (non-commercial use — see DATA_SOURCES.md). Fails soft: missing packs make
 // those layers empty, never break the build.
-import { writeFile, mkdir } from 'node:fs/promises';
+import { writeFile, mkdir, access } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const out = path.join(root, 'public', 'data');
 await mkdir(out, { recursive: true });
+
+// Packs are committed to the repo; refresh only missing ones (or all with
+// REFRESH_DATA=1) so deploys stay fast and deterministic.
+const REFRESH = process.env.REFRESH_DATA === '1';
+async function missing(name) {
+  if (REFRESH) return true;
+  try { await access(path.join(out, name)); return false; } catch { return true; }
+}
 
 const UA = { 'User-Agent': 'argus-eye/1.0 (personal open-source project; build-time data fetch)' };
 
@@ -19,7 +27,7 @@ async function get(url, timeoutMs = 30000) {
 }
 
 // 1) Places for keyless search: Natural Earth 110m populated places.
-try {
+if (await missing('places.json')) try {
   const data = await get('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_populated_places_simple.geojson');
   const places = data.features
     .filter((f) => f.geometry?.coordinates)
@@ -74,7 +82,7 @@ async function overpass(q) {
 }
 
 // 2) Datacenters: OSM via Overpass (man_made=data_center), nodes + way centers.
-try {
+if (await missing('datacenters.json')) try {
   const q = '[out:json][timeout:60];(node["man_made"="data_center"];way["man_made"="data_center"];);out center tags 6000;';
   const data = await overpass(q);
   if (data) {
@@ -90,7 +98,7 @@ try {
 } catch (e) { console.warn('datacenters pack failed:', e.message); }
 
 // 3) Dams: OSM waterway=dam with a name (keeps the pack light and meaningful).
-try {
+if (await missing('dams.json')) try {
   const q = '[out:json][timeout:60];(node["waterway"="dam"]["name"];way["waterway"="dam"]["name"];);out center tags 6000;';
   const data = await overpass(q);
   if (data) {
@@ -104,7 +112,7 @@ try {
 } catch (e) { console.warn('dams pack failed:', e.message); }
 
 // 4) Submarine cables: TeleGeography public GeoJSON (non-commercial terms).
-try {
+if (await missing('cables.geojson')) try {
   const data = await get('https://www.submarinecablemap.com/api/v3/cable/cable-geo.json');
   const features = [];
   const bySlug = new Map();
