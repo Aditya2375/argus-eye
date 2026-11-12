@@ -55,6 +55,7 @@ export async function restoreShareState(
   }
   const [lon, lat, h] = state.c;
   flyTo(lon, lat, h, 0);
+  bus.emit('layers:refresh');
   bus.emit('caption', 'SHARED VIEW RESTORED');
 }
 

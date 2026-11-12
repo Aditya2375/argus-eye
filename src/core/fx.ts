@@ -103,6 +103,7 @@ export function initFx(viewer: Cesium.Viewer): void {
 
 export function setSensor(next: SensorMode, silent = false): void {
   if (!viewerRef) return;
+  if (next !== 'normal' && !SHADERS[next]) next = 'normal'; // tolerate malformed share links
   const stages = viewerRef.scene.postProcessStages;
   if (active) { stages.remove(active); active = null; }
   mode = next;
