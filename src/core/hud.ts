@@ -258,11 +258,6 @@ function openPowerUp(): void {
     ['googleMaps', 'Google Maps key', 'Direct Photorealistic 3D + place search (metered)'],
     ['aisStream', 'AISStream key', 'Worldwide live vessels'],
     ['firmsMapKey', 'NASA FIRMS map key', 'Active fire detections (free key)'],
-    ['mapillary', 'Mapillary client token', 'Street Level provider'],
-    ['tomtom', 'TomTom key', 'Live traffic flow speeds'],
-    ['openSkyClientId', 'OpenSky client id', 'More flight polling credits'],
-    ['openSkySecret', 'OpenSky client secret', 'More flight polling credits'],
-    ['openai', 'OpenAI key', 'AI HUD scene summary (voice stays keyless)'],
   ];
   for (const [key, label, hint] of fields) {
     node.append(el('div', 'note', `${label} — ${hint}`));
@@ -281,8 +276,7 @@ function openPowerUp(): void {
   note.innerHTML = 'Keys never leave this browser except to their own provider. Get free keys: ' +
     '<a class="ext" href="https://ion.cesium.com/tokens" target="_blank" rel="noopener">Cesium ion</a> · ' +
     '<a class="ext" href="https://aisstream.io" target="_blank" rel="noopener">AISStream</a> · ' +
-    '<a class="ext" href="https://firms.modaps.eosdis.nasa.gov/api/map_key/" target="_blank" rel="noopener">FIRMS</a> · ' +
-    '<a class="ext" href="https://www.mapillary.com/dashboard/developers" target="_blank" rel="noopener">Mapillary</a>';
+    '<a class="ext" href="https://firms.modaps.eosdis.nasa.gov/api/map_key/" target="_blank" rel="noopener">FIRMS</a>';
   node.append(note);
   renderCustomContext(node);
 }

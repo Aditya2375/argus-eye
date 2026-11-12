@@ -38,8 +38,7 @@ section after deploy (see [Deploy](#deploy)).
   (nowCOAST WMS + NHC).
 - **CCTV** — public traffic cameras (Austin, Finland, Tallinn, Hong Kong) with
   viewsheds; NEAREST jumps the camera to the closest feed.
-- **Street level** — Panoramax/KartaView photo overlays (Mapillary and Google
-  Street View with keys).
+- **Street level** — Panoramax/KartaView open photo overlays.
 - **Surveillance map** — ALPR cameras and military installations from
   OpenStreetMap.
 - **Special-use airspace & wildlife** — FAA SUA polygons, iNaturalist sightings,
@@ -71,11 +70,9 @@ stored in `localStorage` in your browser only — nothing is proxied or logged:
 | Key | Unlocks |
 | --- | --- |
 | Cesium ion | Google Photorealistic 3D tiles, ion assets |
-| Google Maps | Street View overlay, Google geocoder |
-| Mapillary | Mapillary street-level coverage |
+| Google Maps | Direct Photorealistic 3D tiles, Google geocoder |
 | AISstream | Global live AIS websocket |
 | NASA FIRMS | High-resolution fire hotspots |
-| OpenSky | Authenticated flight fallback quota |
 
 ## Deploy
 

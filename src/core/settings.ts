@@ -5,14 +5,8 @@ export interface Settings {
   keys: {
     cesiumIon: string;
     googleMaps: string;
-    openSkyClientId: string;
-    openSkySecret: string;
     aisStream: string;
     firmsMapKey: string;
-    mapillary: string;
-    tomtom: string;
-    ontario511: string;
-    openai: string;
   };
   mapStack: 'esri' | 'osm' | 'ion3d' | 'google3d';
   sensor: 'normal' | 'crt' | 'nvg' | 'flir' | 'noir';
@@ -24,8 +18,8 @@ export interface Settings {
 
 const DEFAULTS: Settings = {
   keys: {
-    cesiumIon: '', googleMaps: '', openSkyClientId: '', openSkySecret: '',
-    aisStream: '', firmsMapKey: '', mapillary: '', tomtom: '', ontario511: '', openai: '',
+    cesiumIon: '', googleMaps: '',
+    aisStream: '', firmsMapKey: '',
   },
   mapStack: 'esri',
   sensor: 'normal',

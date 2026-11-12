@@ -53,8 +53,7 @@ export function createTrafficLayer(deps: LayerDeps): HudLayer {
   function tick(): void {
     if (!collection) return;
     collection.removeAll();
-    const tomtomNote = settings.keys.tomtom ? ' · TomTom flow active' : '';
-    void tomtomNote;
+
     for (const v of vehicles) {
       const road = roads[v.road];
       if (!road || road.pts.length < 2) continue;

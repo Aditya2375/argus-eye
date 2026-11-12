@@ -75,8 +75,8 @@ only as optional BYOK:
 4. **Wind** — rendered from Open-Meteo's gridded API instead of downloading
    and decoding raw NOAA GRIB2 files server-side. Same underlying GFS model,
    no decoder infrastructure.
-5. **Street level** — Panoramax and KartaView are keyless open imagery;
-   Mapillary and Google Street View are wired in as BYOK upgrades.
+5. **Street level** — Panoramax and KartaView are keyless open imagery, so no
+   key is needed at all here.
 6. **Imagery/terrain** — Esri's keyless endpoints instead of paid Cesium ion
    or Google tiles by default; ion/Google 3D remain BYOK upgrades.
 
