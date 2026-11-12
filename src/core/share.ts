@@ -47,12 +47,12 @@ export async function restoreShareState(
     await setMapStack(state.stack as 'esri' | 'osm' | 'ion3d' | 'google3d');
   }
   if (state.sensor) setSensor(state.sensor, true);
-  for (const id of state.layers ?? []) {
+  await Promise.all((state.layers ?? []).map(async (id) => {
     const layer = layers.find((l) => l.id === id);
     if (layer && !layer.enabled) {
       try { await layer.enable(); } catch (err) { console.warn(`share restore: ${id}`, err); }
     }
-  }
+  }));
   const [lon, lat, h] = state.c;
   flyTo(lon, lat, h, 0);
   bus.emit('layers:refresh');
