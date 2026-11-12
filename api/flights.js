@@ -2,6 +2,11 @@
 // Primary: OpenSky (anonymous, bbox). Fallbacks: adsb.lol, airplanes.live.
 const RADIUS_NM_MAX = 250;
 
+// OpenSky anonymous quota is ~400 req/day/IP on shared cloud egress; cache
+// the global snapshot in-function so polling clients share one upstream call.
+let globalCache = null;
+let globalCacheAt = 0;
+
 export default async function handler(req, res) {
   const url = new URL(req.url, 'http://x');
   const lat = Number(url.searchParams.get('lat') ?? '20');
@@ -12,7 +17,39 @@ export default async function handler(req, res) {
     return;
   }
   // map camera height to a search radius
-  const radiusNm = Math.min(RADIUS_NM_MAX, Math.max(60, Math.round((h / 1000) * 0.55)));
+  const rawRadiusNm = Math.max(60, Math.round((h / 1000) * 0.55));
+
+  // Zoomed out past what a point query can cover: global OpenSky snapshot.
+  if (rawRadiusNm > RADIUS_NM_MAX) {
+    if (globalCache && Date.now() - globalCacheAt < 25000) {
+      res.setHeader('Cache-Control', 'public, max-age=10');
+      res.status(200).json(globalCache);
+      return;
+    }
+    try {
+      const r = await fetch('https://opensky-network.org/api/states/all', { signal: AbortSignal.timeout(12000) });
+      if (r.ok) {
+        const data = await r.json();
+        const ac = (data.states ?? []).map((s) => ({
+          hex: s[0], flight: (s[1] ?? '').trim(), lat: s[6], lon: s[5],
+          alt_baro: s[7] != null ? Math.round(s[7] / 0.3048) : null,
+          gs: s[9] != null ? Math.round(s[9] / 0.514444) : null,
+          track: s[10], seen: 0, t: '', squawk: s[14] ?? '', category: '',
+        })).filter((a) => a.lat != null && a.lon != null && a.alt_baro);
+        globalCache = { src: 'opensky-global', ac, stale: false };
+        globalCacheAt = Date.now();
+        res.setHeader('Cache-Control', 'public, max-age=10');
+        res.status(200).json(globalCache);
+        return;
+      }
+    } catch { /* fall through */ }
+    if (globalCache) {
+      res.setHeader('Cache-Control', 'public, max-age=10');
+      res.status(200).json({ ...globalCache, stale: true });
+      return;
+    }
+  }
+  const radiusNm = Math.min(RADIUS_NM_MAX, rawRadiusNm);
 
   const attempts = [
     ['adsblol', `https://api.adsb.lol/v2/point/${lat.toFixed(3)}/${lon.toFixed(3)}/${radiusNm}`],
