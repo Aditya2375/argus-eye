@@ -52,7 +52,7 @@ request goes. Two kinds of calls exist:
 | Pack | Source | License |
 | --- | --- | --- |
 | places.json | Natural Earth 110 m populated places | Public domain |
-| datacenters.json, dams.json | OpenStreetMap via Overpass | ODbL — (c) OpenStreetMap contributors |
+| datacenters.json, dams.json | OpenStreetMap via Overpass, Wikidata SPARQL fallback | ODbL — (c) OpenStreetMap contributors; Wikidata CC0 |
 | cables.geojson | TeleGeography submarine cable map | Non-commercial use with attribution |
 
 Build script: `scripts/build-data.mjs` (runs in `npm run build`, fails soft —

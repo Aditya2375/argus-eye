@@ -68,11 +68,12 @@ const OVERPASS = [
   'https://overpass.private.coffee/api/interpreter',
 ];
 async function overpass(q) {
+  const timeoutMs = Number(process.env.OVERPASS_TIMEOUT_MS ?? 70000);
   for (const ep of OVERPASS) {
     try {
       const r = await fetch(ep, {
         method: 'POST', body: `data=${encodeURIComponent(q)}`,
-        signal: AbortSignal.timeout(70000), headers: UA,
+        signal: AbortSignal.timeout(timeoutMs), headers: UA,
       });
       if (r.ok) return await r.json();
       console.warn('overpass', ep, r.status);
@@ -81,12 +82,27 @@ async function overpass(q) {
   return null;
 }
 
+// Wikidata SPARQL fallback (CC0) for when every Overpass mirror is down.
+// coord arrives as WKT "Point(lon lat)".
+async function wikidata(sparql) {
+  try {
+    const url = 'https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(sparql);
+    const r = await fetch(url, { signal: AbortSignal.timeout(60000), headers: UA });
+    if (!r.ok) { console.warn('wikidata', r.status); return null; }
+    const data = await r.json();
+    return (data.results?.bindings ?? []).map((b) => {
+      const m = /^Point\(([-\d.]+) ([-\d.]+)\)/.exec(b.coord?.value ?? '');
+      if (!m) return null;
+      return { n: b.itemLabel?.value, la: Number(m[2]), lo: Number(m[1]) };
+    }).filter((x) => x && Number.isFinite(x.la) && Number.isFinite(x.lo) && x.n && !/^Q\d+$/.test(x.n));
+  } catch (e) { console.warn('wikidata', e.message); return null; }
+}
+
 // 2) Datacenters: OSM via Overpass (man_made=data_center), nodes + way centers.
 if (await missing('datacenters.json')) try {
   const q = '[out:json][timeout:60];(node["man_made"="data_center"];way["man_made"="data_center"];);out center tags 6000;';
   const data = await overpass(q);
   if (data) {
-    const data = await r.json();
     const rows = data.elements
       .map((e) => ({
         n: e.tags?.name, la: e.lat ?? e.center?.lat, lo: e.lon ?? e.center?.lon, o: e.tags?.operator,
@@ -94,7 +110,13 @@ if (await missing('datacenters.json')) try {
       .filter((x) => Number.isFinite(x.la) && Number.isFinite(x.lo));
     await writeFile(path.join(out, 'datacenters.json'), JSON.stringify(rows));
     console.log(`datacenters.json: ${rows.length}`);
-  } else console.warn('datacenters overpass: all mirrors failed');
+  } else {
+    const rows = await wikidata('SELECT ?item ?itemLabel ?coord WHERE { ?item wdt:P31/wdt:P279* wd:Q671224; wdt:P625 ?coord. SERVICE wikibase:label { bd:serviceParam wikibase:language "en". } } LIMIT 4000');
+    if (rows?.length) {
+      await writeFile(path.join(out, 'datacenters.json'), JSON.stringify(rows));
+      console.log(`datacenters.json (wikidata): ${rows.length}`);
+    } else console.warn('datacenters: overpass and wikidata failed');
+  }
 } catch (e) { console.warn('datacenters pack failed:', e.message); }
 
 // 3) Dams: OSM waterway=dam with a name (keeps the pack light and meaningful).
@@ -102,13 +124,18 @@ if (await missing('dams.json')) try {
   const q = '[out:json][timeout:60];(node["waterway"="dam"]["name"];way["waterway"="dam"]["name"];);out center tags 6000;';
   const data = await overpass(q);
   if (data) {
-    const data = await r.json();
     const rows = data.elements
       .map((e) => ({ n: e.tags?.name, la: e.lat ?? e.center?.lat, lo: e.lon ?? e.center?.lon }))
       .filter((x) => Number.isFinite(x.la) && Number.isFinite(x.lo));
     await writeFile(path.join(out, 'dams.json'), JSON.stringify(rows));
     console.log(`dams.json: ${rows.length}`);
-  } else console.warn('dams overpass: all mirrors failed');
+  } else {
+    const rows = await wikidata('SELECT ?item ?itemLabel ?coord WHERE { ?item wdt:P31/wdt:P279* wd:Q12323; wdt:P625 ?coord. SERVICE wikibase:label { bd:serviceParam wikibase:language "en". } } LIMIT 8000');
+    if (rows?.length) {
+      await writeFile(path.join(out, 'dams.json'), JSON.stringify(rows));
+      console.log(`dams.json (wikidata): ${rows.length}`);
+    } else console.warn('dams: overpass and wikidata failed');
+  }
 } catch (e) { console.warn('dams pack failed:', e.message); }
 
 // 4) Submarine cables: TeleGeography public GeoJSON (non-commercial terms).
