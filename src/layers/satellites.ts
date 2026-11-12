@@ -61,21 +61,30 @@ export function createSatellitesLayer(deps: LayerDeps): HudLayer {
     ['cosmos-2251-debris', 'debris', 300],
   ];
 
-  interface CelestrakRow { NORAD_CAT_ID: number; OBJECT_NAME?: string; TLE_LINE1?: string; TLE_LINE2?: string }
+  interface TleRow { id: string; name: string; cls: SatClass; line1: string; line2: string }
 
-  async function loadDirect(): Promise<Array<{ id: string; name: string; cls: SatClass; line1: string; line2: string }>> {
-    const out: Array<{ id: string; name: string; cls: SatClass; line1: string; line2: string }> = [];
+  // CelesTrak FORMAT=json is OMM without the TLE lines; FORMAT=tle carries them.
+  function parseTleText(text: string, cls: SatClass, cap: number): TleRow[] {
+    const out: TleRow[] = [];
+    const lines = text.split(/\r?\n/);
+    for (let i = 0; i + 2 < lines.length && out.length < cap; i++) {
+      const name = lines[i].trim();
+      const line1 = lines[i + 1].trim();
+      const line2 = lines[i + 2].trim();
+      if (!line1.startsWith('1 ') || !line2.startsWith('2 ')) continue;
+      out.push({ id: line1.substring(2, 7).trim(), name: name || line1.substring(2, 7).trim(), cls, line1, line2 });
+      i += 2;
+    }
+    return out;
+  }
+
+  async function loadDirect(): Promise<TleRow[]> {
+    const out: TleRow[] = [];
     const results = await Promise.allSettled(TLE_GROUPS.map(async ([group, cls, cap]) => {
-      const r = await fetch(`https://celestrak.org/NORAD/elements/gp.php?GROUP=${group}&FORMAT=json`,
+      const r = await fetch(`https://celestrak.org/NORAD/elements/gp.php?GROUP=${group}&FORMAT=tle`,
         { signal: AbortSignal.timeout(15000) });
       if (!r.ok) return [];
-      const rows = (await r.json()) as CelestrakRow[];
-      const mine: Array<{ id: string; name: string; cls: SatClass; line1: string; line2: string }> = [];
-      for (const row of (Array.isArray(rows) ? rows : []).slice(0, cap)) {
-        if (!row.TLE_LINE1 || !row.TLE_LINE2) continue;
-        mine.push({ id: String(row.NORAD_CAT_ID), name: String(row.OBJECT_NAME ?? row.NORAD_CAT_ID), cls, line1: row.TLE_LINE1, line2: row.TLE_LINE2 });
-      }
-      return mine;
+      return parseTleText(await r.text(), cls, cap);
     }));
     for (const r of results) if (r.status === 'fulfilled') out.push(...r.value);
     return out;

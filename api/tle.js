@@ -20,21 +20,29 @@ const CACHE_MS = 30 * 60 * 1000;
 // cloud IPs; fetch two groups at a time with retries.
 const UA = { 'User-Agent': 'argus-eye/1.0 (open-source situational-awareness globe)' };
 
+// CelesTrak FORMAT=json is OMM without the TLE lines; FORMAT=tle carries them.
+function parseTleText(text, cls, cap) {
+  const out = [];
+  const lines = text.split(/\r?\n/);
+  for (let i = 0; i + 2 < lines.length && out.length < cap; i++) {
+    const name = lines[i].trim();
+    const line1 = lines[i + 1].trim();
+    const line2 = lines[i + 2].trim();
+    if (!line1.startsWith('1 ') || !line2.startsWith('2 ')) continue;
+    out.push({ id: line1.substring(2, 7).trim(), name: name || line1.substring(2, 7).trim(), cls, line1, line2 });
+    i += 2;
+  }
+  return out;
+}
+
 async function fetchGroup([group, cls, cap]) {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const r = await fetch(
-        `https://celestrak.org/NORAD/elements/gp.php?GROUP=${encodeURIComponent(group)}&FORMAT=json`,
+        `https://celestrak.org/NORAD/elements/gp.php?GROUP=${encodeURIComponent(group)}&FORMAT=tle`,
         { signal: AbortSignal.timeout(8000), headers: UA });
       if (!r.ok) throw new Error(`celestrak ${group} ${r.status}`);
-      const rows = await r.json();
-      return (Array.isArray(rows) ? rows : []).slice(0, cap).map((row) => ({
-        id: String(row.NORAD_CAT_ID),
-        name: String(row.OBJECT_NAME ?? row.NORAD_CAT_ID),
-        cls,
-        line1: row.TLE_LINE1,
-        line2: row.TLE_LINE2,
-      })).filter((s) => s.line1 && s.line2);
+      return parseTleText(await r.text(), cls, cap);
     } catch (e) {
       if (attempt === 2) throw e;
       await new Promise((s) => setTimeout(s, 600 * (attempt + 1)));
