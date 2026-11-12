@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="ARGUS EYE — a real-time planetary awareness console. Live flights, vessels, satellites, earthquakes, fires, weather, public cameras and more on one 3D globe. Keyless by default." />
+  <title>ARGUS EYE — Planetary Awareness Console</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='none' stroke='%2359d6ff' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%2359d6ff'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/cesium/Widgets/widgets.css" />
+</head>
+<body>
+  <div id="boot">
+    <div class="boot-inner">
+      <div class="boot-mark">ARGUS&nbsp;EYE</div>
+      <div class="boot-sub">PLANETARY AWARENESS CONSOLE</div>
+      <div class="boot-bar"><div class="boot-bar-fill" id="boot-fill"></div></div>
+      <div class="boot-status" id="boot-status">INITIALIZING OPTICS…</div>
+    </div>
+  </div>
+
+  <div id="cesium-container"></div>
+  <canvas id="detect-overlay"></canvas>
+  <div id="cockpit-veil" class="hidden"></div>
+
+  <header id="topbar" class="hud hidden">
+    <div class="tb-left">
+      <button id="brand" class="brand" title="Reset globe (Home)">ARGUS<span>EYE</span></button>
+      <div id="clock" class="clock" title="UTC / local time">--:--:--Z</div>
+    </div>
+    <div class="tb-center">
+      <div id="searchbox" class="searchbox">
+        <input id="search-input" type="text" spellcheck="false" autocomplete="off"
+          placeholder="Search place, city, airport, or 12.97, 77.59 · geo:39.73,-104.99" />
+        <div id="search-results" class="search-results hidden"></div>
+      </div>
+    </div>
+    <div class="tb-right">
+      <div id="sensor-pills" class="pillrow" title="Sensor modes (keys 1–6)"></div>
+      <button id="btn-mapstack" class="tbtn" title="Switch map stack">ESRI&nbsp;SAT</button>
+      <button id="btn-powerup" class="tbtn accent" title="Optional provider keys">POWER&nbsp;UP</button>
+      <button id="btn-mic" class="tbtn" title="Voice control (keyless, on-device)">MIC</button>
+      <button id="btn-chat" class="tbtn" title="Typed console chat">CHAT</button>
+    </div>
+  </header>
+
+  <aside id="panel-left" class="hud hidden"></aside>
+  <aside id="panel-right" class="hud hidden"></aside>
+  <div id="voice-panel" class="hud hidden"></div>
+  <div id="dock" class="hud hidden"></div>
+  <div id="toast-stack"></div>
+  <div id="caption" class="hidden"></div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
