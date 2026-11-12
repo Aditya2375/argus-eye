@@ -1,6 +1,6 @@
 // Bikeshare: live station availability over GBFS feeds (keyless registry).
 import type { LayerDeps, PointItem } from './common';
-import { Poller, PointLayer } from './common';
+import { Poller, PointLayer, toastErrors } from './common';
 import type { HudLayer } from '../core/hud';
 
 const NETWORKS: Array<{ id: string; name: string; url: string }> = [
@@ -57,7 +57,7 @@ export function createBikeshareLayer(deps: LayerDeps): HudLayer {
     for (const r of results) if (r.status === 'rejected') console.warn('[bikeshare]', r.reason);
     points.setItems(items);
   }, 5 * 60 * 1000);
-  poller.onError = (e) => console.warn('[bikeshare]', e);
+  poller.onError = toastErrors('bikeshare');
 
   const layer: HudLayer = {
     id: 'bikeshare', name: 'Bikeshare', group: 'Infrastructure', auth: 'free',

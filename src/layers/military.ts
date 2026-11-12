@@ -2,7 +2,7 @@
 // Selecting a contact can backfill ~24h of real trace history as 3D loops.
 import * as Cesium from 'cesium';
 import type { LayerDeps } from './common';
-import { Poller } from './common';
+import { Poller, toastErrors } from './common';
 import { LiveLayer, type LiveFix } from '../core/liveLayer';
 import { tracker } from '../core/track';
 import type { HudLayer } from '../core/hud';
@@ -78,7 +78,7 @@ export function createMilitaryLayer(deps: LayerDeps): HudLayer {
     }
     live.ingest(fixes);
   }, 20000);
-  poller.onError = (err) => console.warn('[military]', err);
+  poller.onError = toastErrors('military');
 
   const layer: HudLayer = {
     id: 'military', name: 'Military Flights', group: 'Movement', auth: 'free', chip: 'MIL',

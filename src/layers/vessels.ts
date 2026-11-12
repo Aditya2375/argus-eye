@@ -3,7 +3,7 @@
 // websocket — the browser connects directly, no server round-trip.
 import * as Cesium from 'cesium';
 import type { LayerDeps } from './common';
-import { Poller } from './common';
+import { Poller, toastErrors } from './common';
 import { LiveLayer, type LiveFix } from '../core/liveLayer';
 import { tracker } from '../core/track';
 import type { HudLayer } from '../core/hud';
@@ -44,7 +44,7 @@ export function createVesselsLayer(deps: LayerDeps): HudLayer {
     }));
     live.ingest(fixes);
   }, 30000);
-  poller.onError = (err) => console.warn('[vessels]', err);
+  poller.onError = toastErrors('vessels');
 
   function startAisStream(): void {
     if (ws || !settings.keys.aisStream) return;

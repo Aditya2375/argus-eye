@@ -2,7 +2,7 @@
 // GTFS-Realtime operator feeds (decoded server-side by /api/gtfsrt).
 import * as Cesium from 'cesium';
 import type { LayerDeps } from './common';
-import { Poller } from './common';
+import { Poller, toastErrors } from './common';
 import { LiveLayer, type LiveFix } from '../core/liveLayer';
 import { tracker } from '../core/track';
 import type { HudLayer } from '../core/hud';
@@ -53,7 +53,7 @@ function makeGtfsLayer(deps: LayerDeps, opts: {
     }));
     for (const r of results) if (r.status === 'rejected') console.warn(`[${opts.id}]`, r.reason);
   }, opts.pollMs);
-  poller.onError = (e) => console.warn(`[${opts.id}]`, e);
+  poller.onError = toastErrors(opts.id);
 
   const layer: HudLayer = {
     id: opts.id, name: opts.name, group: 'Movement', auth: 'free', chip: opts.chip,

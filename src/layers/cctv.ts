@@ -3,7 +3,7 @@
 // viewshed cone, and NEAREST jumps from any tracked target.
 import * as Cesium from 'cesium';
 import type { LayerDeps } from './common';
-import { Poller } from './common';
+import { Poller, toastErrors } from './common';
 import type { HudLayer } from '../core/hud';
 import { bus } from '../core/bus';
 import { el, escapeHtml } from '../core/dom';
@@ -50,7 +50,7 @@ export function createCctvLayer(deps: LayerDeps): HudLayer {
       });
     }
   }, 15 * 60 * 1000);
-  poller.onError = (e) => console.warn('[cctv]', e);
+  poller.onError = toastErrors('cctv');
 
   function cameraIcon(): HTMLCanvasElement {
     const c = document.createElement('canvas');

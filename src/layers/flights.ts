@@ -1,7 +1,7 @@
 // Live Flights: worldwide ADS-B via the serverless proxy (OpenSky primary,
 // adsb.lol / airplanes.live fallback). 11k+ aircraft on real telemetry.
 import type { LayerDeps } from './common';
-import { Poller } from './common';
+import { Poller, toastErrors } from './common';
 import { LiveLayer, type LiveFix } from '../core/liveLayer';
 import { viewCenter, cameraState } from '../core/camera';
 import { tracker } from '../core/track';
@@ -63,7 +63,7 @@ export function createFlightsLayer(deps: LayerDeps): HudLayer {
     live.ingest(fixes);
   }, 12000);
 
-  poller.onError = (err) => console.warn('[flights]', err);
+  poller.onError = toastErrors('flights');
 
   const layer: HudLayer = {
     id: 'flights', name: 'Live Flights', group: 'Movement', auth: 'free', chip: 'FLIGHTS',

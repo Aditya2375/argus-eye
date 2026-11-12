@@ -1,6 +1,6 @@
 // Earthquakes: USGS all-hour/day feeds, magnitude-scaled rings, fault context.
 import type { LayerDeps, PointItem } from './common';
-import { Poller, PointLayer } from './common';
+import { Poller, PointLayer, toastErrors } from './common';
 import type { HudLayer } from '../core/hud';
 import { timeAgo } from '../core/dom';
 
@@ -38,7 +38,7 @@ export function createEarthquakesLayer(deps: LayerDeps): HudLayer {
     }
     points.setItems(items);
   }, 120000);
-  poller.onError = (err) => console.warn('[quakes]', err);
+  poller.onError = toastErrors('quakes');
 
   const layer: HudLayer = {
     id: 'earthquakes', name: 'Earthquakes (24h)', group: 'Events', auth: 'free', chip: 'QUAKES',

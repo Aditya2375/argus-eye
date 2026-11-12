@@ -10,6 +10,20 @@ export interface LayerDeps {
   viewer: Cesium.Viewer;
 }
 
+// Poller error handler: log, and surface a throttled toast so a dead feed
+// never looks like an empty-but-healthy layer.
+export function toastErrors(tag: string): (err: unknown) => void {
+  let lastToast = 0;
+  return (err) => {
+    console.warn(`[${tag}]`, err);
+    const now = Date.now();
+    if (now - lastToast > 180000) {
+      lastToast = now;
+      bus.emit('toast', { text: `${tag} feed error — retrying in the background.`, kind: 'warn' });
+    }
+  };
+}
+
 export class Poller {
   private timer: ReturnType<typeof setInterval> | null = null;
   private fn: () => Promise<void>;

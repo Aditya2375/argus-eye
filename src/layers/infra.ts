@@ -3,7 +3,7 @@
 // see DATA_SOURCES.md), plus Shipwrecks (Wikidata via /api/wrecks).
 import * as Cesium from 'cesium';
 import type { LayerDeps, PointItem } from './common';
-import { Poller, PointLayer } from './common';
+import { Poller, PointLayer, toastErrors } from './common';
 import type { HudLayer } from '../core/hud';
 
 interface BundledPoint { n?: string; la: number; lo: number; o?: string; c?: number }
@@ -106,7 +106,7 @@ export function createShipwrecksLayer(deps: LayerDeps): HudLayer {
     }));
     points.setItems(items);
   }, 24 * 3600 * 1000);
-  poller.onError = (e) => console.warn('[wrecks]', e);
+  poller.onError = toastErrors('wrecks');
 
   const layer: HudLayer = {
     id: 'shipwrecks', name: 'Shipwrecks', group: 'Events', auth: 'free',

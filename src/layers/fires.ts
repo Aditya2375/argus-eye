@@ -2,7 +2,7 @@
 // key in POWER UP for raw VIIRS/MODIS detections (trailing 24h).
 import * as Cesium from 'cesium';
 import type { LayerDeps, PointItem } from './common';
-import { Poller, PointLayer } from './common';
+import { Poller, PointLayer, toastErrors } from './common';
 import type { HudLayer } from '../core/hud';
 import { settings } from '../core/settings';
 import { timeAgo } from '../core/dom';
@@ -66,7 +66,7 @@ export function createFiresLayer(deps: LayerDeps): HudLayer {
     }
     points.setItems(items);
   }, 10 * 60 * 1000);
-  poller.onError = (e) => console.warn('[fires]', e);
+  poller.onError = toastErrors('fires');
 
   const layer: HudLayer = {
     id: 'fires', name: 'Active Fires', group: 'Events', auth: 'free-key', chip: 'FIRES',
@@ -103,7 +103,7 @@ export function createPerimetersLayer(deps: LayerDeps): HudLayer {
       clampToGround: true,
     });
   }, 30 * 60 * 1000);
-  poller.onError = (e) => console.warn('[perimeters]', e);
+  poller.onError = toastErrors('perimeters');
 
   const layer: HudLayer = {
     id: 'perimeters', name: 'Fire Perimeters (US)', group: 'Events', auth: 'free',

@@ -189,12 +189,25 @@ a.ext { color: var(--cyan); text-decoration: none; }
 a.ext:hover { text-decoration: underline; }
 
 /* ---------- responsive ---------- */
+.tb-mobile { display: none; }
 @media (max-width: 900px) {
   #panel-left { width: 220px; bottom: 118px; }
   #panel-right { width: 280px; bottom: 118px; }
   .tb-left { min-width: 0; }
   #clock { display: none; }
   #voice-panel { bottom: 118px; width: min(340px, 86vw); }
+}
+@media (max-width: 700px) {
+  .tb-mobile { display: inline-block; }
+  #sensor-pills { display: none; }
+  #dock { left: 8px; right: 8px; transform: none; overflow-x: auto; bottom: 8px; justify-content: flex-start; }
+  /* panels become overlays above the dock; LAYERS button toggles the left one */
+  #panel-left { display: none; top: 56px; left: 8px; right: 8px; width: auto; bottom: 64px; }
+  body.show-layers #panel-left { display: block; }
+  #panel-right { display: none; top: auto; left: 8px; right: 8px; width: auto; bottom: 64px; max-height: 46vh; }
+  body.show-ctx #panel-right { display: flex; }
+  #voice-panel { left: 8px; right: 8px; width: auto; bottom: 64px; }
+  .searchbox input { font-size: 12px; }
 }
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb { background: rgba(89,214,255,.18); border-radius: 4px; }

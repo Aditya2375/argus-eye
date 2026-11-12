@@ -3,7 +3,7 @@
 // Play / step-back / Latest. Cyclone advisories draw NHC/CPHC positions.
 import * as Cesium from 'cesium';
 import type { LayerDeps } from './common';
-import { Poller } from './common';
+import { Poller, toastErrors } from './common';
 import type { HudLayer } from '../core/hud';
 import { bus } from '../core/bus';
 import { el } from '../core/dom';
@@ -116,7 +116,7 @@ export function createObservedWeatherLayer(deps: LayerDeps, kind: 'radar' | 'sat
   }
 
   const poller = new Poller(async () => { await loadTimes(); if (layer.enabled) show(); }, 120000);
-  poller.onError = (e) => console.warn(`[weather:${kind}]`, e);
+  poller.onError = toastErrors('weather:' + kind);
 
   const layer: HudLayer = {
     id: `wx-${kind}`, name: meta.name, group: 'Weather', auth: 'free',
@@ -172,7 +172,7 @@ export function createCyclonesLayer(deps: LayerDeps): HudLayer {
       });
     }
   }, 5 * 60 * 1000);
-  poller.onError = (e) => console.warn('[cyclones]', e);
+  poller.onError = toastErrors('cyclones');
 
   const layer: HudLayer = {
     id: 'cyclones', name: 'Cyclone Advisories', group: 'Weather', auth: 'free', chip: 'CYCLONES',

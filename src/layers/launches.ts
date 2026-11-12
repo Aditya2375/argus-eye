@@ -2,7 +2,7 @@
 // reconstructed ascent replay, scrubbable 0.25×–4×, labeled as an estimate.
 import * as Cesium from 'cesium';
 import type { LayerDeps, PointItem } from './common';
-import { Poller, PointLayer } from './common';
+import { Poller, PointLayer, toastErrors } from './common';
 import type { HudLayer } from '../core/hud';
 import { bus } from '../core/bus';
 import { el, escapeHtml } from '../core/dom';
@@ -50,7 +50,7 @@ export function createLaunchesLayer(deps: LayerDeps): HudLayer {
     }
     points.setItems(items);
   }, 30 * 60 * 1000);
-  poller.onError = (e) => console.warn('[launches]', e);
+  poller.onError = toastErrors('launches');
 
   function replay(launch: LlLaunch): void {
     const lat = Number(launch.pad?.latitude); const lon = Number(launch.pad?.longitude);
