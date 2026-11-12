@@ -12,11 +12,26 @@ export default async function handler(req, res) {
   } else {
     query = '(war OR airstrike OR missile OR clash OR offensive OR shelling OR invasion OR attack)';
   }
-  const gdelt = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(query)}` +
-    `&mode=ArtList&format=json&maxrecords=50&timespan=${hours}h&sort=HybridRel&sourcelang:eng`;
+  const gdelt = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(query + ' sourcelang:english')}` +
+    `&mode=ArtList&format=json&maxrecords=50&timespan=${hours}h&sort=HybridRel`;
   try {
-    const r = await fetch(gdelt, { signal: AbortSignal.timeout(12000) });
-    if (!r.ok) throw new Error(`gdelt ${r.status}`);
+    // GDELT is slow and rate-limits shared cloud IPs (429): retry twice.
+    let r = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        r = await fetch(gdelt, {
+          signal: AbortSignal.timeout(10000),
+          headers: { 'User-Agent': 'argus-eye/1.0 (open-source situational-awareness globe)' },
+        });
+        if (r.ok) break;
+        if (r.status !== 429 && r.status < 500) throw new Error(`gdelt ${r.status}`);
+      } catch (e) {
+        if (attempt === 2) throw e;
+      }
+      if (attempt === 2) break;
+      await new Promise((s) => setTimeout(s, 1500 * (attempt + 1)));
+    }
+    if (!r || !r.ok) throw new Error(`gdelt ${r ? r.status : 'no response'}`);
     const data = await r.json();
     const articles = (data.articles ?? []).map((a) => ({
       title: a.title,

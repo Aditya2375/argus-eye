@@ -12,12 +12,6 @@ import { settings } from '../core/settings';
 import { fmtKnots } from '../core/dom';
 import { bus } from '../core/bus';
 
-interface AisLocation {
-  mmsi: number;
-  geometry: { coordinates: [number, number] };
-  properties: { sog?: number; cog?: number; heading?: number; navStat?: number; timestampExternal?: number };
-}
-
 export function createVesselsLayer(deps: LayerDeps): HudLayer {
   const live = new LiveLayer({
     name: 'vessels',
@@ -32,27 +26,22 @@ export function createVesselsLayer(deps: LayerDeps): HudLayer {
   let ws: WebSocket | null = null;
 
   const poller = new Poller(async () => {
-    // keyless baseline: Digitraffic Finland latest AIS snapshot
-    const res = await fetch('https://meri.digitraffic.fi/api/ais/v1/locations', undefined);
-    if (!res.ok) throw new Error(`digitraffic ${res.status}`);
-    const data = (await res.json()) as { features?: AisLocation[] };
-    const fixes: LiveFix[] = [];
-    for (const f of data.features ?? []) {
-      const [lon, lat] = f.geometry.coordinates;
-      fixes.push({
-        id: String(f.mmsi),
-        lon, lat, alt: 0,
-        heading: f.properties.cog ?? f.properties.heading,
-        speed: typeof f.properties.sog === 'number' ? f.properties.sog * 0.514444 : undefined,
-        ts: f.properties.timestampExternal ?? Date.now(),
-        kind: 'ship',
-        meta: {
-          name: `MMSI ${f.mmsi}`,
-          sogKnots: f.properties.sog ?? 0,
-          src: 'Digitraffic (FI)',
-        },
-      });
-    }
+    // keyless baseline: Digitraffic Finland latest AIS snapshot (proxied;
+    // Digitraffic requires Accept-Encoding, which browsers cannot set)
+    const res = await fetch('/api/vessels');
+    if (!res.ok) throw new Error(`vessels ${res.status}`);
+    const data = (await res.json()) as {
+      vessels?: Array<{ id: string; lon: number; lat: number; heading?: number; sogKnots?: number; ts?: number }>;
+    };
+    const fixes: LiveFix[] = (data.vessels ?? []).map((v) => ({
+      id: v.id,
+      lon: v.lon, lat: v.lat, alt: 0,
+      heading: v.heading,
+      speed: typeof v.sogKnots === 'number' ? v.sogKnots * 0.514444 : undefined,
+      ts: v.ts ?? Date.now(),
+      kind: 'ship',
+      meta: { name: `MMSI ${v.id}`, sogKnots: v.sogKnots ?? 0, src: 'Digitraffic (FI)' },
+    }));
     live.ingest(fixes);
   }, 30000);
   poller.onError = (err) => console.warn('[vessels]', err);

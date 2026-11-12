@@ -14,7 +14,10 @@ const ADAPTERS = {
     }));
   },
   fintraffic: async () => {
-    const r = await fetch('https://tie.digitraffic.fi/api/weathercam/v1/stations/data', { signal: AbortSignal.timeout(15000) });
+    const r = await fetch('https://tie.digitraffic.fi/api/weathercam/v1/stations', {
+      signal: AbortSignal.timeout(15000),
+      headers: { 'User-Agent': 'argus-eye/1.0 (open-source situational-awareness globe)' },
+    });
     if (!r.ok) throw new Error(String(r.status));
     const data = await r.json();
     const cams = [];
@@ -22,10 +25,10 @@ const ADAPTERS = {
       const [lon, lat] = st.geometry?.coordinates ?? [];
       if (lon == null) continue;
       for (const preset of st.properties?.presets ?? []) {
-        if (!preset.imageUrl) continue;
+        if (!preset.id || preset.inCollection === false) continue;
         cams.push({
-          id: preset.id, name: `${st.properties?.name ?? 'Fintraffic'} ${preset.presentationName ?? ''}`.trim(),
-          lat, lon, image: preset.imageUrl, link: 'https://tie.digitraffic.fi',
+          id: preset.id, name: st.properties?.name ?? 'Fintraffic cam',
+          lat, lon, image: `https://weathercam.digitraffic.fi/${preset.id}.jpg`, link: 'https://tie.digitraffic.fi',
         });
       }
     }
