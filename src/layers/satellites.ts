@@ -65,17 +65,19 @@ export function createSatellitesLayer(deps: LayerDeps): HudLayer {
 
   async function loadDirect(): Promise<Array<{ id: string; name: string; cls: SatClass; line1: string; line2: string }>> {
     const out: Array<{ id: string; name: string; cls: SatClass; line1: string; line2: string }> = [];
-    for (const [group, cls, cap] of TLE_GROUPS) {
-      try {
-        const r = await fetch(`https://celestrak.org/NORAD/elements/gp.php?GROUP=${group}&FORMAT=json`);
-        if (!r.ok) continue;
-        const rows = (await r.json()) as CelestrakRow[];
-        for (const row of (Array.isArray(rows) ? rows : []).slice(0, cap)) {
-          if (!row.TLE_LINE1 || !row.TLE_LINE2) continue;
-          out.push({ id: String(row.NORAD_CAT_ID), name: String(row.OBJECT_NAME ?? row.NORAD_CAT_ID), cls, line1: row.TLE_LINE1, line2: row.TLE_LINE2 });
-        }
-      } catch { /* group unavailable */ }
-    }
+    const results = await Promise.allSettled(TLE_GROUPS.map(async ([group, cls, cap]) => {
+      const r = await fetch(`https://celestrak.org/NORAD/elements/gp.php?GROUP=${group}&FORMAT=json`,
+        { signal: AbortSignal.timeout(15000) });
+      if (!r.ok) return [];
+      const rows = (await r.json()) as CelestrakRow[];
+      const mine: Array<{ id: string; name: string; cls: SatClass; line1: string; line2: string }> = [];
+      for (const row of (Array.isArray(rows) ? rows : []).slice(0, cap)) {
+        if (!row.TLE_LINE1 || !row.TLE_LINE2) continue;
+        mine.push({ id: String(row.NORAD_CAT_ID), name: String(row.OBJECT_NAME ?? row.NORAD_CAT_ID), cls, line1: row.TLE_LINE1, line2: row.TLE_LINE2 });
+      }
+      return mine;
+    }));
+    for (const r of results) if (r.status === 'fulfilled') out.push(...r.value);
     return out;
   }
 
