@@ -54,6 +54,19 @@ export function initHud(): void {
   wireBus();
   wireKeys();
   startClock();
+  // counts land asynchronously after a layer is enabled; keep them fresh
+  // without rebuilding rows (which would reset scroll and click state).
+  setInterval(() => {
+    for (const layer of layers) {
+      const span = leftPanel.querySelector(`[data-lstate="${layer.id}"]`);
+      if (!span) continue;
+      const count = layer.count?.();
+      const text = layer.enabled ? (count != null ? `ON · ${count.toLocaleString('en-US')}` : 'ON') : 'OFF';
+      if (span.textContent !== text) span.textContent = text;
+      const row = span.closest('.lrow');
+      if (row) row.classList.toggle('on', layer.enabled);
+    }
+  }, 4000);
 }
 
 function buildRightPanel(): HTMLElement {
@@ -98,7 +111,9 @@ function renderLeftPanel(): void {
       dot.title = layer.auth === 'free' ? 'No key needed' : layer.auth === 'free-key' ? 'Free key (optional or required)' : 'Optional paid capability';
       row.append(dot, el('span', 'lname', layer.name));
       const count = layer.count?.();
-      row.append(el('span', 'lstate', layer.enabled ? (count != null ? `ON · ${count.toLocaleString('en-US')}` : 'ON') : 'OFF'));
+      const stateSpan = el('span', 'lstate', layer.enabled ? (count != null ? `ON · ${count.toLocaleString('en-US')}` : 'ON') : 'OFF');
+      stateSpan.dataset.lstate = layer.id;
+      row.append(stateSpan);
       row.onclick = async () => {
         if (layer.enabled) { layer.disable(); }
         else { await layer.enable(); }
