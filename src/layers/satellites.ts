@@ -245,6 +245,16 @@ export function createSatellitesLayer(deps: LayerDeps): HudLayer {
     return true;
   }
 
+  let loadAttempts = 0;
+  async function tryLoad(): Promise<void> {
+    try { await load(); } catch (err) { console.warn('[satellites]', err); }
+    // CelesTrak rate-limits bursts; retry instead of leaving the layer empty
+    if (!sats.length && layer.enabled && loadAttempts < 4) {
+      loadAttempts++;
+      setTimeout(() => { if (layer.enabled) void tryLoad(); }, 30000);
+    }
+  }
+
   const layer: HudLayer = {
     id: 'satellites', name: 'Satellites', group: 'Movement', auth: 'free', chip: 'SATS',
     enabled: false,
@@ -253,7 +263,7 @@ export function createSatellitesLayer(deps: LayerDeps): HudLayer {
       layer.enabled = true;
       collection = new Cesium.BillboardCollection({ scene: deps.viewer.scene });
       deps.viewer.scene.primitives.add(collection);
-      await load();
+      await tryLoad();
       const tick = () => render();
       deps.viewer.scene.postUpdate.addEventListener(tick);
       tickRemove = () => deps.viewer.scene.postUpdate.removeEventListener(tick);

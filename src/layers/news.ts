@@ -13,6 +13,7 @@ let mode: 'conflicts' | 'local' = 'conflicts';
 let hours = 24;
 
 export function initNewsPanel(_deps: LayerDeps): HudLayer {
+  let retries = 0;
   async function load(): Promise<void> {
     try {
       const q = mode === 'local' ? `mode=local&country=` : `mode=conflicts&hours=${hours}`;
@@ -21,6 +22,11 @@ export function initNewsPanel(_deps: LayerDeps): HudLayer {
     } catch (err) {
       console.warn('[news]', err);
       articles = [];
+    }
+    // upstreams rate-limit shared cloud IPs; retry a few times instead of staying empty
+    if (!articles.length && layer.enabled && retries < 4) {
+      retries++;
+      setTimeout(() => { if (layer.enabled) void load(); }, 30000);
     }
   }
 
