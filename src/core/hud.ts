@@ -54,6 +54,15 @@ export function initHud(): void {
   wireBus();
   wireKeys();
   startClock();
+  // mobile panel toggles (buttons are display:none on desktop)
+  document.getElementById('btn-layers')?.addEventListener('click', () => {
+    document.body.classList.toggle('show-layers');
+    document.body.classList.remove('show-ctx');
+  });
+  document.getElementById('btn-ctx')?.addEventListener('click', () => {
+    document.body.classList.toggle('show-ctx');
+    document.body.classList.remove('show-layers');
+  });
   // counts land asynchronously after a layer is enabled; keep them fresh
   // without rebuilding rows (which would reset scroll and click state).
   setInterval(() => {
@@ -238,6 +247,8 @@ export function renderCustomContext(node: HTMLElement): void {
   switchTab('context');
   rightBody.innerHTML = '';
   rightBody.append(node);
+  // on small screens the context panel is hidden until it has something to say
+  if (window.matchMedia('(max-width: 700px)').matches) document.body.classList.add('show-ctx');
 }
 
 function wireKeys(): void {
