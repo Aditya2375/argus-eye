@@ -1,5 +1,8 @@
 // /api/news — GDELT DOC 2.0 based news. mode=conflicts (physical violence
 // worldwide) or mode=local&country=XX (2-letter code or name).
+const CACHE_MS = 10 * 60 * 1000;
+const cache = new Map();
+
 export default async function handler(req, res) {
   const url = new URL(req.url, 'http://x');
   const mode = url.searchParams.get('mode') ?? 'conflicts';
@@ -14,24 +17,19 @@ export default async function handler(req, res) {
   }
   const gdelt = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(query + ' sourcelang:english')}` +
     `&mode=ArtList&format=json&maxrecords=50&timespan=${hours}h&sort=HybridRel`;
+  const cacheKey = `${mode}:${country}:${hours}`;
+  if (cache.has(cacheKey) && Date.now() - cache.get(cacheKey).at < CACHE_MS) {
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.status(200).json(cache.get(cacheKey).body);
+    return;
+  }
   try {
-    // GDELT is slow and rate-limits shared cloud IPs (429): retry twice.
-    let r = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        r = await fetch(gdelt, {
-          signal: AbortSignal.timeout(10000),
-          headers: { 'User-Agent': 'argus-eye/1.0 (open-source situational-awareness globe)' },
-        });
-        if (r.ok) break;
-        if (r.status !== 429 && r.status < 500) throw new Error(`gdelt ${r.status}`);
-      } catch (e) {
-        if (attempt === 2) throw e;
-      }
-      if (attempt === 2) break;
-      await new Promise((s) => setTimeout(s, 1500 * (attempt + 1)));
-    }
-    if (!r || !r.ok) throw new Error(`gdelt ${r ? r.status : 'no response'}`);
+    // GDELT regularly takes 10-20s; one generous attempt, then serve cache.
+    const r = await fetch(gdelt, {
+      signal: AbortSignal.timeout(24000),
+      headers: { 'User-Agent': 'argus-eye/1.0 (open-source situational-awareness globe)' },
+    });
+    if (!r.ok) throw new Error(`gdelt ${r.status}`);
     const data = await r.json();
     const articles = (data.articles ?? []).map((a) => ({
       title: a.title,
@@ -42,9 +40,17 @@ export default async function handler(req, res) {
       image: a.socialimage,
       tone: a.tone,
     }));
+    const body = { mode, articles };
+    cache.set(cacheKey, { at: Date.now(), body });
     res.setHeader('Cache-Control', 'public, max-age=300');
-    res.status(200).json({ mode, articles });
+    res.status(200).json(body);
   } catch (err) {
+    const hit = cache.get(cacheKey) ?? [...cache.values()][0];
+    if (hit) {
+      res.setHeader('Cache-Control', 'public, max-age=120');
+      res.status(200).json({ ...hit.body, stale: true });
+      return;
+    }
     res.status(502).json({ error: String(err?.message ?? err), articles: [] });
   }
 }

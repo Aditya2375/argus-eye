@@ -46,12 +46,50 @@ export function createSatellitesLayer(deps: LayerDeps): HudLayer {
   let tickRemove: (() => void) | null = null;
   const MAX_STARLINK = 1200; // sampled subset of the full shell for browser perf
 
+  // CelesTrak blocks shared cloud egress IPs but sends CORS '*', so the
+  // browser fetches TLEs directly; /api/tle stays as a fallback.
+  const TLE_GROUPS: Array<[string, SatClass, number]> = [
+    ['stations', 'stations', 60],
+    ['weather', 'imaging', 120],
+    ['goes', 'imaging', 40],
+    ['noaa', 'imaging', 40],
+    ['geo', 'telecom', 600],
+    ['intelsat', 'telecom', 300],
+    ['science', 'science', 300],
+    ['starlink', 'starlink', 1600],
+    ['iridium-33-debris', 'debris', 200],
+    ['cosmos-2251-debris', 'debris', 300],
+  ];
+
+  interface CelestrakRow { NORAD_CAT_ID: number; OBJECT_NAME?: string; TLE_LINE1?: string; TLE_LINE2?: string }
+
+  async function loadDirect(): Promise<Array<{ id: string; name: string; cls: SatClass; line1: string; line2: string }>> {
+    const out: Array<{ id: string; name: string; cls: SatClass; line1: string; line2: string }> = [];
+    for (const [group, cls, cap] of TLE_GROUPS) {
+      try {
+        const r = await fetch(`https://celestrak.org/NORAD/elements/gp.php?GROUP=${group}&FORMAT=json`);
+        if (!r.ok) continue;
+        const rows = (await r.json()) as CelestrakRow[];
+        for (const row of (Array.isArray(rows) ? rows : []).slice(0, cap)) {
+          if (!row.TLE_LINE1 || !row.TLE_LINE2) continue;
+          out.push({ id: String(row.NORAD_CAT_ID), name: String(row.OBJECT_NAME ?? row.NORAD_CAT_ID), cls, line1: row.TLE_LINE1, line2: row.TLE_LINE2 });
+        }
+      } catch { /* group unavailable */ }
+    }
+    return out;
+  }
+
   async function load(): Promise<void> {
-    const res = await fetch('/api/tle');
-    if (!res.ok) throw new Error(`tle ${res.status}`);
-    const data = await res.json() as {
-      sats: Array<{ id: string; name: string; cls: SatClass; line1: string; line2: string }>;
-    };
+    let rows = await loadDirect();
+    if (!rows.length) {
+      const res = await fetch('/api/tle');
+      if (!res.ok) throw new Error(`tle ${res.status}`);
+      const data = await res.json() as {
+        sats: Array<{ id: string; name: string; cls: SatClass; line1: string; line2: string }>;
+      };
+      rows = data.sats;
+    }
+    const data = { sats: rows };
     sats.length = 0;
     let starlinkCount = 0;
     for (const s of data.sats) {
